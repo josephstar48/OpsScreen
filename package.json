@@ -2,12 +2,17 @@
   "name": "opsscreen",
   "version": "1.0.0",
   "private": true,
-  "description": "Training-only humanitarian intake PWA with a lightweight Node backend and file-backed database.",
+  "type": "module",
+  "description": "Training-only humanitarian intake PWA with Vercel Functions and managed Postgres storage.",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "npx vercel dev",
+    "start": "npx vercel dev"
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@vercel/functions": "^2.0.0",
+    "pg": "^8.11.0"
   }
 }
