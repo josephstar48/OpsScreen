@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="OpsScreen is a training-only humanitarian intake PWA for synthetic screening records."
+    />
+    <meta name="theme-color" content="#183c34" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="assets/icons/favicon.png" />
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>OpsScreen</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div class="hero__backdrop"></div>
+        <div class="hero__content">
+          <div class="hero__brand">
+            <img
+              src="assets/opsscreen-logo-full.png"
+              alt="OpsScreen"
+              class="hero__logo"
+            />
+            <div class="hero__status-row">
+              <span class="badge badge--warning">Training Scenario</span>
+              <span class="badge">Synthetic Data Only</span>
+              <span class="badge">For Classroom/Lane Use Only</span>
+            </div>
+          </div>
+          <div class="hero__panel">
+            <p class="eyebrow">Offline-capable intake and review</p>
+            <h1>Screening sheets for humanitarian intake practice.</h1>
+            <p class="hero__text">
+              Built as a non-operational training aid for mock displaced-person
+              registration and welfare screening. This app does not automate
+              coercive questioning, targeting, risk scoring, or operational
+              exploitation workflows.
+            </p>
+            <div class="hero__actions">
+              <button id="installButton" class="button button--primary" hidden>
+                Install PWA
+              </button>
+              <button id="seedDemoButton" class="button button--ghost">
+                Load Demo Record
+              </button>
+              <button id="exportJsonButton" class="button button--ghost">
+                Export JSON
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <aside class="rail">
+          <section class="card card--notice">
+            <h2>Safety Guardrails</h2>
+            <ul class="stack-list">
+              <li>No live operational data.</li>
+              <li>No detainee, prisoner, or intelligence workflows.</li>
+              <li>No automated threat labels or triage scores.</li>
+              <li>No interrogation guidance or coercive prompts.</li>
+              <li>Collect only the minimum synthetic training data needed.</li>
+            </ul>
+          </section>
+
+          <section class="card">
+            <h2>Session Snapshot</h2>
+            <dl class="metrics" id="metrics"></dl>
+          </section>
+
+          <section class="card">
+            <h2>Quick Actions</h2>
+            <div class="quick-actions">
+              <button id="saveDraftButton" class="button button--primary">
+                Save Draft
+              </button>
+              <button id="newRecordButton" class="button button--ghost">
+                New Blank Record
+              </button>
+              <button id="exportCsvButton" class="button button--ghost">
+                Export CSV
+              </button>
+              <button id="printButton" class="button button--ghost">
+                Print Sheet
+              </button>
+            </div>
+          </section>
+        </aside>
+
+        <section class="workspace">
+          <section class="card form-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Record Builder</p>
+                <h2>Mock screening sheet</h2>
+              </div>
+              <p class="section-heading__hint">
+                Fields are phrased for humanitarian intake and accountability
+                practice. Marked items are optional unless your training lane
+                requires them.
+              </p>
+            </div>
+
+            <form id="screeningForm" class="screening-form">
+              <input type="hidden" id="recordId" name="recordId" />
+
+              <section class="form-section">
+                <h3>Scenario Control</h3>
+                <div class="form-grid">
+                  <label>
+                    Training scenario name
+                    <input name="scenarioName" required maxlength="80" />
+                  </label>
+                  <label>
+                    Exercise / class
+                    <input name="exerciseName" maxlength="80" />
+                  </label>
+                  <label>
+                    Intake site
+                    <input name="intakeSite" maxlength="80" />
+                  </label>
+                  <label>
+                    Intake date/time
+                    <input name="intakeDate" type="datetime-local" required />
+                  </label>
+                  <label>
+                    Screened by
+                    <input name="screenedBy" maxlength="60" />
+                  </label>
+                  <label>
+                    Language support
+                    <select name="languageSupport">
+                      <option value="None">None</option>
+                      <option value="Interpreter present">Interpreter present</option>
+                      <option value="Translated form">Translated form</option>
+                      <option value="Both">Both</option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <section class="form-section">
+                <h3>Subject Profile</h3>
+                <div class="form-grid">
+                  <label>
+                    Mock subject ID
+                    <input name="subjectId" required maxlength="40" />
+                  </label>
+                  <label>
+                    First name
+                    <input name="firstName" maxlength="60" />
+                  </label>
+                  <label>
+                    Last name
+                    <input name="lastName" maxlength="60" />
+                  </label>
+                  <label>
+                    Alias / nickname
+                    <input name="alias" maxlength="60" />
+                  </label>
+                  <label>
+                    Date of birth
+                    <input name="dob" type="date" />
+                  </label>
+                  <label>
+                    Nationality / origin
+                    <input name="nationality" maxlength="60" />
+                  </label>
+                  <label class="form-grid__wide">
+                    Family / group members traveling together
+                    <textarea
+                      name="groupMembers"
+                      rows="3"
+                      maxlength="300"
+                    ></textarea>
+                  </label>
+                </div>
+              </section>
+
+              <section class="form-section">
+                <h3>Humanitarian Needs</h3>
+                <div class="form-grid">
+                  <label>
+                    Immediate needs
+                    <select name="immediateNeeds">
+                      <option value="None reported">None reported</option>
+                      <option value="Food / water">Food / water</option>
+                      <option value="Medical attention">Medical attention</option>
+                      <option value="Shelter / rest">Shelter / rest</option>
+                      <option value="Protection concern">Protection concern</option>
+                      <option value="Multiple needs">Multiple needs</option>
+                    </select>
+                  </label>
+                  <label>
+                    Medical concern level
+                    <select name="medicalLevel">
+                      <option value="None observed">None observed</option>
+                      <option value="Routine follow-up">Routine follow-up</option>
+                      <option value="Urgent referral">Urgent referral</option>
+                    </select>
+                  </label>
+                  <label>
+                    Safeguarding concern
+                    <select name="safeguardingConcern">
+                      <option value="None noted">None noted</option>
+                      <option value="Separated family member">Separated family member</option>
+                      <option value="At-risk minor">At-risk minor</option>
+                      <option value="Potential trafficking indicator">
+                        Potential trafficking indicator
+                      </option>
+                    </select>
+                  </label>
+                  <label>
+                    Current status
+                    <select name="currentStatus">
+                      <option value="Awaiting processing">Awaiting processing</option>
+                      <option value="Referred to medical">Referred to medical</option>
+                      <option value="Referred to shelter">Referred to shelter</option>
+                      <option value="Closed training case">Closed training case</option>
+                    </select>
+                  </label>
+                  <label class="form-grid__wide">
+                    Property / documents carried
+                    <textarea name="propertyNotes" rows="3" maxlength="300"></textarea>
+                  </label>
+                  <label class="form-grid__wide">
+                    Welfare observations
+                    <textarea
+                      name="welfareNotes"
+                      rows="4"
+                      maxlength="500"
+                      placeholder="Use neutral, factual observations only."
+                    ></textarea>
+                  </label>
+                </div>
+              </section>
+
+              <section class="form-section">
+                <h3>Movement and Intake Notes</h3>
+                <div class="form-grid">
+                  <label>
+                    Point of origin
+                    <input name="originLocation" maxlength="80" />
+                  </label>
+                  <label>
+                    Last known transit point
+                    <input name="transitPoint" maxlength="80" />
+                  </label>
+                  <label>
+                    Intended destination
+                    <input name="destination" maxlength="80" />
+                  </label>
+                  <label>
+                    Arrival method
+                    <input name="arrivalMethod" maxlength="60" />
+                  </label>
+                  <label class="form-grid__wide">
+                    Consent / privacy script used
+                    <textarea
+                      name="consentScript"
+                      rows="3"
+                      maxlength="300"
+                      placeholder="Example: This is a training record using synthetic data. No live operational information is being collected."
+                    ></textarea>
+                  </label>
+                  <label class="form-grid__wide">
+                    Additional notes
+                    <textarea name="additionalNotes" rows="4" maxlength="500"></textarea>
+                  </label>
+                </div>
+              </section>
+
+              <section class="form-section">
+                <h3>Disposition</h3>
+                <div class="form-grid">
+                  <label>
+                    Referral destination
+                    <input name="referralDestination" maxlength="80" />
+                  </label>
+                  <label>
+                    Follow-up owner
+                    <input name="followUpOwner" maxlength="60" />
+                  </label>
+                  <label>
+                    Follow-up due
+                    <input name="followUpDate" type="date" />
+                  </label>
+                  <label>
+                    Record classification
+                    <select name="classification">
+                      <option value="Training use only">Training use only</option>
+                      <option value="Instructor review only">Instructor review only</option>
+                    </select>
+                  </label>
+                  <label class="checkbox-row form-grid__wide">
+                    <input type="checkbox" name="syntheticConfirmed" required />
+                    <span>
+                      I confirm this record contains synthetic data only and is
+                      not derived from a live operation.
+                    </span>
+                  </label>
+                </div>
+              </section>
+
+              <div class="form-footer">
+                <p id="saveStatus" class="save-status">No draft saved yet.</p>
+                <button class="button button--primary" type="submit">
+                  Save Record
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section class="card">
+            <div class="section-heading section-heading--compact">
+              <div>
+                <p class="eyebrow">Local Records</p>
+                <h2>Saved training sheets</h2>
+              </div>
+              <input
+                id="searchInput"
+                class="search-input"
+                type="search"
+                placeholder="Search scenario, subject, or site"
+              />
+            </div>
+            <div id="recordsList" class="records-list"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <template id="recordTemplate">
+      <article class="record-item">
+        <div>
+          <div class="record-item__topline">
+            <h3 data-field="title"></h3>
+            <span class="record-pill" data-field="status"></span>
+          </div>
+          <p class="record-item__meta" data-field="meta"></p>
+          <p class="record-item__notes" data-field="notes"></p>
+        </div>
+        <div class="record-item__actions">
+          <button class="button button--ghost" data-action="edit">Edit</button>
+          <button class="button button--ghost" data-action="duplicate">
+            Duplicate
+          </button>
+          <button class="button button--ghost" data-action="delete">Delete</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
