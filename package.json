@@ -1,0 +1,13 @@
+{
+  "name": "opsscreen",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Training-only humanitarian intake PWA with a lightweight Node backend and file-backed database.",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

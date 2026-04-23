@@ -213,6 +213,39 @@ textarea {
   font-weight: 700;
 }
 
+.status-panel {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--line);
+}
+
+.status-panel--online {
+  border-color: rgba(29, 90, 78, 0.28);
+  background: rgba(29, 90, 78, 0.08);
+}
+
+.status-panel--offline {
+  border-color: rgba(139, 106, 33, 0.34);
+  background: rgba(139, 106, 33, 0.08);
+}
+
+.status-panel__headline,
+.status-panel__detail {
+  margin: 0;
+}
+
+.status-panel__headline {
+  font-weight: 700;
+}
+
+.status-panel__detail {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .quick-actions {
   display: grid;
   gap: 10px;

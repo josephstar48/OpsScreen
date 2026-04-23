@@ -44,6 +44,9 @@
               <button id="installButton" class="button button--primary" hidden>
                 Install PWA
               </button>
+              <button id="syncNowButton" class="button button--primary">
+                Sync Now
+              </button>
               <button id="seedDemoButton" class="button button--ghost">
                 Load Demo Record
               </button>
@@ -69,6 +72,14 @@
           </section>
 
           <section class="card">
+            <h2>Backend Status</h2>
+            <div id="backendStatus" class="status-panel">
+              <p class="status-panel__headline">Checking backend connection...</p>
+              <p class="status-panel__detail">API-backed sync is preferred when available.</p>
+            </div>
+          </section>
+
+          <section class="card">
             <h2>Session Snapshot</h2>
             <dl class="metrics" id="metrics"></dl>
           </section>
@@ -81,6 +92,9 @@
               </button>
               <button id="newRecordButton" class="button button--ghost">
                 New Blank Record
+              </button>
+              <button id="pullServerDataButton" class="button button--ghost">
+                Refresh from Server
               </button>
               <button id="exportCsvButton" class="button button--ghost">
                 Export CSV
