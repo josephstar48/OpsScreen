@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="OpsScreen is a training-only humanitarian intake PWA for synthetic screening records."
+      content="OpsScreen is a training-only multi-organization humanitarian intake PWA using synthetic data only."
     />
     <meta name="theme-color" content="#183c34" />
     <link rel="manifest" href="manifest.webmanifest" />
@@ -26,32 +26,29 @@
               class="hero__logo"
             />
             <div class="hero__status-row">
-              <span class="badge badge--warning">Training Scenario</span>
+              <span class="badge badge--warning">Training Platform</span>
               <span class="badge">Synthetic Data Only</span>
-              <span class="badge">For Classroom/Lane Use Only</span>
+              <span class="badge">Multi-Organization</span>
             </div>
           </div>
           <div class="hero__panel">
-            <p class="eyebrow">Offline-capable intake and review</p>
-            <h1>Screening sheets for humanitarian intake practice.</h1>
+            <p class="eyebrow">Organization-scoped scenarios and records</p>
+            <h1>OpsScreen for multi-unit training administration.</h1>
             <p class="hero__text">
-              Built as a non-operational training aid for mock displaced-person
-              registration and welfare screening. This app does not automate
-              coercive questioning, targeting, risk scoring, or operational
-              exploitation workflows.
+              This workspace models a super-admin layer for the overall platform,
+              organization admins for each unit or company, and scenario-scoped
+              records for members inside their own organization only. It remains
+              a synthetic, training-only environment.
             </p>
             <div class="hero__actions">
               <button id="installButton" class="button button--primary" hidden>
                 Install PWA
               </button>
               <button id="syncNowButton" class="button button--primary">
-                Sync Now
+                Refresh Workspace
               </button>
               <button id="seedDemoButton" class="button button--ghost">
                 Load Demo Record
-              </button>
-              <button id="exportJsonButton" class="button button--ghost">
-                Export JSON
               </button>
             </div>
           </div>
@@ -60,76 +57,268 @@
 
       <main class="layout">
         <aside class="rail">
-          <section class="card card--notice">
-            <h2>Safety Guardrails</h2>
-            <ul class="stack-list">
-              <li>No live operational data.</li>
-              <li>No detainee, prisoner, or intelligence workflows.</li>
-              <li>No automated threat labels or triage scores.</li>
-              <li>No interrogation guidance or coercive prompts.</li>
-              <li>Collect only the minimum synthetic training data needed.</li>
-            </ul>
+          <section class="card">
+            <h2>Access Workspace</h2>
+            <div class="context-grid">
+              <label>
+                Acting user
+                <select id="actingUserSelect"></select>
+              </label>
+              <label>
+                Organization
+                <select id="actingOrgSelect"></select>
+              </label>
+              <label>
+                Scenario
+                <select id="actingScenarioSelect"></select>
+              </label>
+            </div>
+            <div id="roleSummary" class="tag-row"></div>
           </section>
 
           <section class="card">
             <h2>Backend Status</h2>
             <div id="backendStatus" class="status-panel">
               <p class="status-panel__headline">Checking backend connection...</p>
-              <p class="status-panel__detail">API-backed sync is preferred when available.</p>
+              <p class="status-panel__detail">Platform state will load from the API when available.</p>
             </div>
           </section>
 
+          <section class="card card--notice">
+            <h2>Safety Guardrails</h2>
+            <ul class="stack-list">
+              <li>Training-only roles and synthetic identities.</li>
+              <li>No live operations, detainee, or intelligence case data.</li>
+              <li>No coercive workflows or automated threat scoring.</li>
+              <li>Organizations only see their own scenarios and records.</li>
+              <li>Super admin governance is limited to platform oversight tasks.</li>
+            </ul>
+          </section>
+
           <section class="card">
-            <h2>Session Snapshot</h2>
+            <h2>Platform Snapshot</h2>
             <dl class="metrics" id="metrics"></dl>
-          </section>
-
-          <section class="card">
-            <h2>Quick Actions</h2>
-            <div class="quick-actions">
-              <button id="saveDraftButton" class="button button--primary">
-                Save Draft
-              </button>
-              <button id="newRecordButton" class="button button--ghost">
-                New Blank Record
-              </button>
-              <button id="pullServerDataButton" class="button button--ghost">
-                Refresh from Server
-              </button>
-              <button id="exportCsvButton" class="button button--ghost">
-                Export CSV
-              </button>
-              <button id="printButton" class="button button--ghost">
-                Print Sheet
-              </button>
-            </div>
           </section>
         </aside>
 
         <section class="workspace">
-          <section class="card form-card">
+          <section class="card">
             <div class="section-heading">
               <div>
-                <p class="eyebrow">Record Builder</p>
-                <h2>Mock screening sheet</h2>
+                <p class="eyebrow">Current Context</p>
+                <h2 id="contextTitle">Loading workspace...</h2>
+              </div>
+              <p id="contextDetail" class="section-heading__hint">
+                Role-aware views update as you switch acting user, organization, and scenario.
+              </p>
+            </div>
+            <div id="scenarioBoard" class="data-list"></div>
+          </section>
+
+          <section id="superAdminSection" class="card hidden">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Super Admin Console</p>
+                <h2>Platform oversight</h2>
               </div>
               <p class="section-heading__hint">
-                Fields are phrased for humanitarian intake and accountability
-                practice. Marked items are optional unless your training lane
-                requires them.
+                Limited to organizations, users, org activation, and org-admin assignment.
               </p>
             </div>
 
+            <div class="management-grid">
+              <form id="createOrganizationForm" class="form-section">
+                <h3>Create organization</h3>
+                <div class="form-grid form-grid--single">
+                  <label>
+                    Organization name
+                    <input name="name" maxlength="80" required />
+                  </label>
+                </div>
+                <div class="form-footer">
+                  <p class="save-status">Creates a new training organization and join code.</p>
+                  <button class="button button--primary" type="submit">Create Org</button>
+                </div>
+              </form>
+
+              <form id="setOrgAdminForm" class="form-section">
+                <h3>Assign or remove org admin</h3>
+                <div class="form-grid form-grid--single">
+                  <label>
+                    Organization
+                    <select name="orgId" id="orgAdminOrgSelect"></select>
+                  </label>
+                  <label>
+                    User
+                    <select name="userId" id="orgAdminUserSelect"></select>
+                  </label>
+                  <label>
+                    Admin action
+                    <select name="enabled">
+                      <option value="true">Assign org admin</option>
+                      <option value="false">Remove org admin</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="form-footer">
+                  <p class="save-status">Promotes or demotes organization ownership.</p>
+                  <button class="button button--primary" type="submit">Apply</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="section-heading section-heading--compact">
+              <h3>Organizations</h3>
+            </div>
+            <div id="organizationList" class="data-list"></div>
+
+            <div class="section-heading section-heading--compact">
+              <h3>Platform users</h3>
+            </div>
+            <div id="platformUserList" class="data-list"></div>
+          </section>
+
+          <section id="orgAdminSection" class="card hidden">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Organization Admin</p>
+                <h2>Manage your organization</h2>
+              </div>
+              <p class="section-heading__hint">
+                Create scenarios, add members, and assign org-level roles within your own unit only.
+              </p>
+            </div>
+
+            <div class="management-grid">
+              <form id="createUserForm" class="form-section">
+                <h3>Add member</h3>
+                <div class="form-grid">
+                  <label>
+                    Full name
+                    <input name="fullName" maxlength="80" required />
+                  </label>
+                  <label>
+                    Email
+                    <input name="email" type="email" maxlength="120" required />
+                  </label>
+                  <label class="form-grid__wide">
+                    Initial org role
+                    <select name="orgRole">
+                      <option value="member">Member</option>
+                      <option value="instructor">Instructor / EXCON</option>
+                      <option value="excon">EXCON</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="form-footer">
+                  <p class="save-status">Creates a user and adds them to the active organization.</p>
+                  <button class="button button--primary" type="submit">Add User</button>
+                </div>
+              </form>
+
+              <form id="assignRoleForm" class="form-section">
+                <h3>Assign organization role</h3>
+                <div class="form-grid form-grid--single">
+                  <label>
+                    Organization member
+                    <select name="userId" id="memberRoleUserSelect"></select>
+                  </label>
+                  <label>
+                    Role
+                    <select name="orgRole">
+                      <option value="member">Member</option>
+                      <option value="instructor">Instructor</option>
+                      <option value="excon">EXCON</option>
+                      <option value="org_admin">Org Admin</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="form-footer">
+                  <p class="save-status">Role assignment stays inside the active organization.</p>
+                  <button class="button button--primary" type="submit">Assign Role</button>
+                </div>
+              </form>
+
+              <form id="createScenarioForm" class="form-section">
+                <h3>Create scenario</h3>
+                <div class="form-grid">
+                  <label>
+                    Scenario name
+                    <input name="name" maxlength="80" required />
+                  </label>
+                  <label class="form-grid__wide">
+                    Scenario description
+                    <textarea name="description" rows="4" maxlength="300"></textarea>
+                  </label>
+                </div>
+                <div class="form-footer">
+                  <p class="save-status">Creates a scenario for the active organization and join code.</p>
+                  <button class="button button--primary" type="submit">Create Scenario</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <section id="memberSection" class="card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Join Flow</p>
+                <h2>Organization and scenario access</h2>
+              </div>
+              <p class="section-heading__hint">
+                Members join organizations via org join codes and scenarios via scenario join codes.
+              </p>
+            </div>
+            <div class="management-grid">
+              <form id="joinOrganizationForm" class="form-section">
+                <h3>Join organization</h3>
+                <div class="form-grid form-grid--single">
+                  <label>
+                    Organization join code
+                    <input name="joinCode" maxlength="30" required />
+                  </label>
+                </div>
+                <div class="form-footer">
+                  <p class="save-status">Adds the acting user to that organization as a member.</p>
+                  <button class="button button--primary" type="submit">Join Org</button>
+                </div>
+              </form>
+
+              <form id="joinScenarioForm" class="form-section">
+                <h3>Join scenario</h3>
+                <div class="form-grid form-grid--single">
+                  <label>
+                    Scenario join code
+                    <input name="joinCode" maxlength="30" required />
+                  </label>
+                </div>
+                <div class="form-footer">
+                  <p class="save-status">Grants the acting user access to a scenario within their organization.</p>
+                  <button class="button button--primary" type="submit">Join Scenario</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <section class="card form-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Scenario Record Builder</p>
+                <h2>Scenario-scoped screening sheet</h2>
+              </div>
+              <p class="section-heading__hint">
+                Records are tied to the active organization and active scenario. Org admins can review all org records; members only manage their own submissions.
+              </p>
+            </div>
+
+            <div class="context-banner" id="recordScopeBanner"></div>
+
             <form id="screeningForm" class="screening-form">
-              <input type="hidden" id="recordId" name="recordId" />
+              <input type="hidden" name="recordId" id="recordId" />
 
               <section class="form-section">
                 <h3>Scenario Control</h3>
                 <div class="form-grid">
-                  <label>
-                    Training scenario name
-                    <input name="scenarioName" required maxlength="80" />
-                  </label>
                   <label>
                     Exercise / class
                     <input name="exerciseName" maxlength="80" />
@@ -187,11 +376,7 @@
                   </label>
                   <label class="form-grid__wide">
                     Family / group members traveling together
-                    <textarea
-                      name="groupMembers"
-                      rows="3"
-                      maxlength="300"
-                    ></textarea>
+                    <textarea name="groupMembers" rows="3" maxlength="300"></textarea>
                   </label>
                 </div>
               </section>
@@ -224,9 +409,7 @@
                       <option value="None noted">None noted</option>
                       <option value="Separated family member">Separated family member</option>
                       <option value="At-risk minor">At-risk minor</option>
-                      <option value="Potential trafficking indicator">
-                        Potential trafficking indicator
-                      </option>
+                      <option value="Potential trafficking indicator">Potential trafficking indicator</option>
                     </select>
                   </label>
                   <label>
@@ -239,48 +422,8 @@
                     </select>
                   </label>
                   <label class="form-grid__wide">
-                    Property / documents carried
-                    <textarea name="propertyNotes" rows="3" maxlength="300"></textarea>
-                  </label>
-                  <label class="form-grid__wide">
                     Welfare observations
-                    <textarea
-                      name="welfareNotes"
-                      rows="4"
-                      maxlength="500"
-                      placeholder="Use neutral, factual observations only."
-                    ></textarea>
-                  </label>
-                </div>
-              </section>
-
-              <section class="form-section">
-                <h3>Movement and Intake Notes</h3>
-                <div class="form-grid">
-                  <label>
-                    Point of origin
-                    <input name="originLocation" maxlength="80" />
-                  </label>
-                  <label>
-                    Last known transit point
-                    <input name="transitPoint" maxlength="80" />
-                  </label>
-                  <label>
-                    Intended destination
-                    <input name="destination" maxlength="80" />
-                  </label>
-                  <label>
-                    Arrival method
-                    <input name="arrivalMethod" maxlength="60" />
-                  </label>
-                  <label class="form-grid__wide">
-                    Consent / privacy script used
-                    <textarea
-                      name="consentScript"
-                      rows="3"
-                      maxlength="300"
-                      placeholder="Example: This is a training record using synthetic data. No live operational information is being collected."
-                    ></textarea>
+                    <textarea name="welfareNotes" rows="4" maxlength="500"></textarea>
                   </label>
                   <label class="form-grid__wide">
                     Additional notes
@@ -305,7 +448,7 @@
                     <input name="followUpDate" type="date" />
                   </label>
                   <label>
-                    Record classification
+                    Classification
                     <select name="classification">
                       <option value="Training use only">Training use only</option>
                       <option value="Instructor review only">Instructor review only</option>
@@ -314,18 +457,15 @@
                   <label class="checkbox-row form-grid__wide">
                     <input type="checkbox" name="syntheticConfirmed" required />
                     <span>
-                      I confirm this record contains synthetic data only and is
-                      not derived from a live operation.
+                      I confirm this record contains synthetic data only and is not derived from a live operation.
                     </span>
                   </label>
                 </div>
               </section>
 
               <div class="form-footer">
-                <p id="saveStatus" class="save-status">No draft saved yet.</p>
-                <button class="button button--primary" type="submit">
-                  Save Record
-                </button>
+                <p id="saveStatus" class="save-status">No record saved yet.</p>
+                <button class="button button--primary" type="submit">Save Record</button>
               </div>
             </form>
           </section>
@@ -333,41 +473,31 @@
           <section class="card">
             <div class="section-heading section-heading--compact">
               <div>
-                <p class="eyebrow">Local Records</p>
-                <h2>Saved training sheets</h2>
+                <p class="eyebrow">Saved Records</p>
+                <h2>Scenario submissions</h2>
               </div>
               <input
                 id="searchInput"
                 class="search-input"
                 type="search"
-                placeholder="Search scenario, subject, or site"
+                placeholder="Search subject, site, or scenario"
               />
             </div>
-            <div id="recordsList" class="records-list"></div>
+            <div id="recordsList" class="data-list"></div>
+          </section>
+
+          <section id="auditSection" class="card hidden">
+            <div class="section-heading section-heading--compact">
+              <div>
+                <p class="eyebrow">Audit Log</p>
+                <h2>Recent platform actions</h2>
+              </div>
+            </div>
+            <div id="auditList" class="data-list"></div>
           </section>
         </section>
       </main>
     </div>
-
-    <template id="recordTemplate">
-      <article class="record-item">
-        <div>
-          <div class="record-item__topline">
-            <h3 data-field="title"></h3>
-            <span class="record-pill" data-field="status"></span>
-          </div>
-          <p class="record-item__meta" data-field="meta"></p>
-          <p class="record-item__notes" data-field="notes"></p>
-        </div>
-        <div class="record-item__actions">
-          <button class="button button--ghost" data-action="edit">Edit</button>
-          <button class="button button--ghost" data-action="duplicate">
-            Duplicate
-          </button>
-          <button class="button button--ghost" data-action="delete">Delete</button>
-        </div>
-      </article>
-    </template>
 
     <script src="app.js" defer></script>
   </body>

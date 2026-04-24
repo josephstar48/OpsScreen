@@ -7,16 +7,23 @@ export const config = {
 
 export async function GET() {
   await ensureSchema();
-  const result = await query("SELECT NOW() AS now");
+  const [databaseNow, organizationCount, userCount, scenarioCount] = await Promise.all([
+    query("SELECT NOW() AS now"),
+    query("SELECT COUNT(*)::int AS count FROM opsscreen_organizations"),
+    query("SELECT COUNT(*)::int AS count FROM opsscreen_users"),
+    query("SELECT COUNT(*)::int AS count FROM opsscreen_scenarios"),
+  ]);
 
   return json({
     ok: true,
     mode: "api",
     detail:
-      "Connected to Vercel Functions with managed Postgres storage. Records persist outside the deployment filesystem.",
+      "Connected to the multi-organization training backend with managed Postgres storage.",
     database: {
-      provider: "Marketplace Postgres",
-      connectedAt: result.rows[0].now,
+      connectedAt: databaseNow.rows[0].now,
+      organizations: organizationCount.rows[0].count,
+      users: userCount.rows[0].count,
+      scenarios: scenarioCount.rows[0].count,
     },
   });
 }

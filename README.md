@@ -1,6 +1,6 @@
 # OpsScreen
 
-OpsScreen is a progressive web app for **training-only** humanitarian intake practice using **synthetic data only**. It now uses **Vercel Functions** for the backend and a **managed Postgres database** for durable hosted persistence.
+OpsScreen is a progressive web app for **training-only** humanitarian intake practice using **synthetic data only**. It uses **Vercel Functions** for the backend and a **managed Postgres database** for durable hosted persistence, and now includes a **multi-organization platform model**.
 
 ## Safety boundaries
 
@@ -19,6 +19,9 @@ OpsScreen is a progressive web app for **training-only** humanitarian intake pra
 - Audit logging in Postgres for create, update, and delete actions
 - API-first frontend with local-storage fallback when offline
 - JSON and CSV export for instructor review
+- Super admin, org admin, and member role views
+- Organizations for units/companies and scenarios scoped inside each organization
+- Organization join codes and scenario join codes for classroom onboarding
 
 ## Project structure
 
@@ -32,9 +35,24 @@ OpsScreen is a progressive web app for **training-only** humanitarian intake pra
 - `manifest.webmanifest` - install metadata
 - `assets/` - provided OpsScreen branding and generated icons
 
+## Multi-tenant model
+
+- `Super Admin`
+  Views all organizations and users, activates/deactivates organizations, and assigns or removes org admins.
+- `Organization Admin`
+  Manages only their own organization, creates scenarios, adds users, and assigns org-level roles.
+- `Users / Members`
+  Join an organization, join scenarios within that organization, and submit their own screening sheets.
+- `Scenarios`
+  Shared environments nested under a single organization. Records are submitted against the active scenario context.
+
+The current app uses an **acting user selector** for training/demo access. It does **not** claim secure authentication yet.
+
 ## API surface
 
 - `GET /api/health` - backend health and database connectivity
+- `GET /api/platform` - organizations, users, memberships, and scenarios
+- `POST /api/platform` - role-aware organization/user/scenario actions
 - `GET /api/records` - list all saved records
 - `POST /api/records` - create a record
 - `PUT /api/records/:recordId` - update a record
@@ -43,12 +61,17 @@ OpsScreen is a progressive web app for **training-only** humanitarian intake pra
 
 ## Database model
 
-The app bootstraps two tables:
+The app bootstraps these core tables:
 
+- `opsscreen_users`
+- `opsscreen_organizations`
+- `opsscreen_org_memberships`
+- `opsscreen_scenarios`
+- `opsscreen_scenario_memberships`
 - `opsscreen_records`
-  Stores `record_id`, summary columns, and the full record payload as `JSONB`
 - `opsscreen_audit_log`
-  Stores action, record ID, actor, source IP, and timestamp
+
+It also seeds a demo super admin, two demo organizations, sample org admins, sample members, and starter scenarios so the platform is usable immediately.
 
 ## Vercel deployment
 
@@ -103,6 +126,7 @@ Source: https://vercel.com/docs/environment-variables
 
 ## Next hardening steps
 
-- Add authentication and role-based access before any shared deployment
+- Replace the acting-user selector with real authentication and session handling
+- Enforce row-level access with verified user identity instead of client-supplied actor IDs
 - Add encryption or field-level redaction if you expand beyond synthetic classroom data
 - Add formal SQL migrations instead of runtime bootstrap if you want tighter release control

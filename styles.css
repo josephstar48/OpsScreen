@@ -213,6 +213,10 @@ textarea {
   font-weight: 700;
 }
 
+.hidden {
+  display: none;
+}
+
 .status-panel {
   display: grid;
   gap: 8px;
@@ -249,6 +253,40 @@ textarea {
 .quick-actions {
   display: grid;
   gap: 10px;
+}
+
+.context-grid,
+.management-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.context-grid {
+  grid-template-columns: 1fr;
+}
+
+.management-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: rgba(29, 90, 78, 0.1);
+  color: var(--accent-strong);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .button {
@@ -326,6 +364,10 @@ textarea {
   gap: 16px;
 }
 
+.form-grid--single {
+  grid-template-columns: 1fr;
+}
+
 .form-grid label {
   display: grid;
   gap: 8px;
@@ -376,12 +418,14 @@ textarea {
   color: var(--muted);
 }
 
-.records-list {
+.records-list,
+.data-list {
   display: grid;
   gap: 14px;
 }
 
-.record-item {
+.record-item,
+.data-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
@@ -392,14 +436,16 @@ textarea {
   border: 1px solid var(--line);
 }
 
-.record-item__topline {
+.record-item__topline,
+.data-item__header {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   align-items: start;
 }
 
-.record-item h3 {
+.record-item h3,
+.data-item h3 {
   margin: 0;
   font-size: 1.15rem;
 }
@@ -439,9 +485,28 @@ textarea {
   text-align: center;
 }
 
+.context-banner {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(29, 90, 78, 0.16);
+  background: rgba(29, 90, 78, 0.06);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.context-banner__divider {
+  margin: 0 10px;
+  color: rgba(17, 39, 34, 0.25);
+}
+
 @media (max-width: 1080px) {
   .hero__content,
   .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .management-grid {
     grid-template-columns: 1fr;
   }
 
@@ -466,7 +531,8 @@ textarea {
   }
 
   .form-grid,
-  .record-item {
+  .record-item,
+  .data-item {
     grid-template-columns: 1fr;
   }
 
@@ -477,6 +543,10 @@ textarea {
 
   .record-item__actions {
     justify-content: start;
+  }
+
+  .context-banner__divider {
+    display: none;
   }
 }
 

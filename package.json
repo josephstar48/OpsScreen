@@ -4,10 +4,6 @@
   "private": true,
   "type": "module",
   "description": "Training-only humanitarian intake PWA with Vercel Functions and managed Postgres storage.",
-  "scripts": {
-    "dev": "npx vercel dev",
-    "start": "npx vercel dev"
-  },
   "engines": {
     "node": ">=18"
   },
