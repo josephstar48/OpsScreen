@@ -28,10 +28,10 @@ export async function PUT(request) {
       return error("Record not found.", 404);
     }
 
-    assertCanModifyRecord(actorContext, current.rows[0].org_id, current.rows[0].created_by);
     payload.createdBy = current.rows[0].created_by;
     payload.orgId = current.rows[0].org_id;
     validateRecord(payload, true);
+    assertCanModifyRecord(actorContext, current.rows[0].org_id, current.rows[0].created_by, payload.scenarioId);
     const record = normalizeRecord({ ...current.rows[0].payload, ...payload, recordId }, true);
 
     await query(
@@ -131,19 +131,28 @@ function extractRecordId(request) {
   return decodeURIComponent(url.pathname.split("/").pop() || "");
 }
 
-function assertCanModifyRecord(actorContext, orgId, createdBy) {
+function assertCanModifyRecord(actorContext, orgId, createdBy, scenarioId = null) {
   if (actorContext.user.platformRole === "super_admin") {
     return;
   }
 
-  const adminMembership = actorContext.memberships.find(
-    (item) => item.orgId === orgId && item.active && item.orgRole === "org_admin"
-  );
-  if (adminMembership) {
+  const membership = actorContext.memberships.find((item) => item.orgId === orgId && item.active);
+  if (membership?.orgRole === "org_admin") {
     return;
   }
 
+  if (!membership) {
+    throw new HttpError("You must be an active member of this organization to change this record.", 403);
+  }
   if (actorContext.user.userId !== createdBy) {
     throw new HttpError("You may only change your own records.", 403);
+  }
+  if (scenarioId) {
+    const scenarioMembership = actorContext.scenarioMemberships.find(
+      (item) => item.scenarioId === scenarioId && item.active
+    );
+    if (!scenarioMembership) {
+      throw new HttpError("You must be an active scenario member to update this record.", 403);
+    }
   }
 }

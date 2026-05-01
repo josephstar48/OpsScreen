@@ -47,10 +47,15 @@ export async function GET(request) {
         const adminParam = params.length;
         params.push(actorContext.user.userId);
         const userParam = params.length;
-        sql += ` AND (org_id = ANY($${adminParam}::text[]) OR created_by = $${userParam})`;
+        params.push(activeOrgIds);
+        const activeOrgParam = params.length;
+        sql += ` AND (org_id = ANY($${adminParam}::text[]) OR (created_by = $${userParam} AND org_id = ANY($${activeOrgParam}::text[])))`;
       } else {
         params.push(actorContext.user.userId);
-        sql += ` AND created_by = $${params.length}`;
+        const userParam = params.length;
+        params.push(activeOrgIds);
+        const activeOrgParam = params.length;
+        sql += ` AND created_by = $${userParam} AND org_id = ANY($${activeOrgParam}::text[])`;
       }
     }
 
