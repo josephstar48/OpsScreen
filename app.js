@@ -11,6 +11,7 @@ const accountSummary = document.getElementById("accountSummary");
 const signInForm = document.getElementById("signInForm");
 const signUpForm = document.getElementById("signUpForm");
 const signOutButton = document.getElementById("signOutButton");
+const authStatus = document.getElementById("authStatus");
 const workspaceAccessSection = document.getElementById("workspaceAccessSection");
 const backendStatus = document.getElementById("backendStatus");
 const actingUserSelect = document.getElementById("actingUserSelect");
@@ -264,9 +265,11 @@ function renderAuth() {
 
   if (!signedIn) {
     accountSummary.innerHTML = "";
+    authStatus.textContent = "Sign in or create an account to continue.";
     return;
   }
 
+  authStatus.textContent = "Signed in.";
   accountSummary.innerHTML = `
     <p class="status-panel__headline">${escapeHtml(state.auth.user.fullName)}</p>
     <p class="status-panel__detail">${escapeHtml(state.auth.user.email)} · ${escapeHtml(formatPlatformRole(state.auth.user.platformRole))}</p>
@@ -602,10 +605,14 @@ async function runAuthAction(action, payload) {
     }
     signInForm.reset();
     signUpForm.reset();
-    setSaveStatus(action === "signOut" ? "Signed out." : "Signed in.");
+    const message = action === "signOut" ? "Signed out." : "Signed in.";
+    authStatus.textContent = message;
+    setSaveStatus(message);
     await refreshWorkspace();
   } catch (error) {
-    setSaveStatus(error.message || "Authentication failed.");
+    const message = error.message || "Authentication failed.";
+    authStatus.textContent = message;
+    setSaveStatus(message);
   }
 }
 

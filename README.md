@@ -47,7 +47,7 @@ OpsScreen is a progressive web app for **training-only** humanitarian intake pra
 - `Scenarios`
   Shared environments nested under a single organization. Records are submitted against the active scenario context.
 
-The current app uses first-party email/password authentication. The first account created with a password becomes the initial super admin; later users default to platform users and gain access through organization/scenario join codes or admin assignment.
+The current app uses first-party email/password authentication. Users gain organization and scenario access through join codes or admin assignment.
 
 ## API surface
 
