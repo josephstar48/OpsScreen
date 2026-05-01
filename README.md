@@ -15,11 +15,12 @@ OpsScreen is a progressive web app for **training-only** humanitarian intake pra
 - Offline-capable PWA with service worker caching and install prompt
 - Vercel Function API routes under `api/`
 - Managed Postgres persistence via `POSTGRES_URL` or `DATABASE_URL`
+- Email/password authentication with signed HttpOnly session cookies
 - Automatic schema bootstrap on first API request
 - Audit logging in Postgres for create, update, and delete actions
 - API-first frontend with local-storage fallback when offline
 - JSON and CSV export for instructor review
-- Super admin, org admin, and member role views
+- Super admin, org admin, and member role views derived from the signed-in user
 - Organizations for units/companies and scenarios scoped inside each organization
 - Organization join codes and scenario join codes for classroom onboarding
 
@@ -46,13 +47,15 @@ OpsScreen is a progressive web app for **training-only** humanitarian intake pra
 - `Scenarios`
   Shared environments nested under a single organization. Records are submitted against the active scenario context.
 
-The current app uses an **acting user selector** for training/demo access. It does **not** claim secure authentication yet.
+The current app uses first-party email/password authentication. The first account created with a password becomes the initial super admin; later users default to platform users and gain access through organization/scenario join codes or admin assignment.
 
 ## API surface
 
 - `GET /api/health` - backend health and database connectivity
-- `GET /api/platform` - organizations, users, memberships, and scenarios
-- `POST /api/platform` - role-aware organization/user/scenario actions
+- `GET /api/auth` - current signed-in account
+- `POST /api/auth` - sign up, sign in, or sign out
+- `GET /api/platform` - authenticated user’s scoped organizations, users, memberships, and scenarios
+- `POST /api/platform` - authenticated role-aware organization/user/scenario actions
 - `GET /api/records` - list all saved records
 - `POST /api/records` - create a record
 - `PUT /api/records/:recordId` - update a record
@@ -96,6 +99,10 @@ The code supports either:
 - `POSTGRES_URL`
 - `DATABASE_URL`
 
+It also requires:
+
+- `AUTH_SECRET` - at least 32 random characters for signing session cookies
+
 ### 3. Deploy
 
 After the integration is attached, deploy the project. The first API request will create the required tables automatically.
@@ -126,7 +133,7 @@ Source: https://vercel.com/docs/environment-variables
 
 ## Next hardening steps
 
-- Replace the acting-user selector with real authentication and session handling
-- Enforce row-level access with verified user identity instead of client-supplied actor IDs
+- Add password reset / email verification through a hosted auth provider or transactional email flow
+- Add formal invite links for admin-created users
 - Add encryption or field-level redaction if you expand beyond synthetic classroom data
 - Add formal SQL migrations instead of runtime bootstrap if you want tighter release control

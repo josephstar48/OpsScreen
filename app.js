@@ -5,6 +5,13 @@ const SETTINGS_KEY = "opsscreen-ui-settings-v1";
 const installButton = document.getElementById("installButton");
 const syncNowButton = document.getElementById("syncNowButton");
 const seedDemoButton = document.getElementById("seedDemoButton");
+const signedOutPanel = document.getElementById("signedOutPanel");
+const signedInPanel = document.getElementById("signedInPanel");
+const accountSummary = document.getElementById("accountSummary");
+const signInForm = document.getElementById("signInForm");
+const signUpForm = document.getElementById("signUpForm");
+const signOutButton = document.getElementById("signOutButton");
+const workspaceAccessSection = document.getElementById("workspaceAccessSection");
 const backendStatus = document.getElementById("backendStatus");
 const actingUserSelect = document.getElementById("actingUserSelect");
 const actingOrgSelect = document.getElementById("actingOrgSelect");
@@ -35,6 +42,7 @@ let state = {
   platform: loadCachedPlatform(),
   records: [],
   auditEntries: [],
+  auth: { checked: false, authenticated: false, user: null },
   api: { available: false, detail: "Checking backend connection..." },
   ui: loadUiSettings(),
 };
@@ -43,7 +51,9 @@ bindEvents();
 initialize();
 
 function bindEvents() {
-  actingUserSelect.addEventListener("change", handleContextChange);
+  signInForm.addEventListener("submit", handleSignIn);
+  signUpForm.addEventListener("submit", handleSignUp);
+  signOutButton.addEventListener("click", handleSignOut);
   actingOrgSelect.addEventListener("change", handleContextChange);
   actingScenarioSelect.addEventListener("change", handleContextChange);
   syncNowButton.addEventListener("click", refreshWorkspace);
@@ -86,12 +96,13 @@ function bindEvents() {
 async function initialize() {
   form.intakeDate.value = formatDateTimeLocal(new Date());
   renderAll();
+  await loadSession();
   await refreshWorkspace();
 }
 
 async function refreshWorkspace() {
   await checkBackend();
-  if (!state.api.available) {
+  if (!state.api.available || !state.auth.authenticated) {
     renderAll();
     return;
   }
@@ -100,6 +111,27 @@ async function refreshWorkspace() {
   applyDefaultSelections();
   await Promise.all([loadRecords(), loadAuditLog()]);
   renderAll();
+}
+
+async function loadSession() {
+  try {
+    const payload = await apiRequest("/auth");
+    state.auth = {
+      checked: true,
+      authenticated: Boolean(payload.authenticated),
+      user: payload.user || null,
+    };
+    if (!state.auth.authenticated) {
+      state.platform = emptyPlatform();
+      state.records = [];
+      state.auditEntries = [];
+    }
+  } catch {
+    state.auth = { checked: true, authenticated: false, user: null };
+    state.platform = emptyPlatform();
+    state.records = [];
+    state.auditEntries = [];
+  }
 }
 
 async function checkBackend() {
@@ -132,7 +164,7 @@ async function loadRecords() {
     return;
   }
 
-  const params = new URLSearchParams({ actorUserId: currentUser.userId });
+  const params = new URLSearchParams();
   if (currentOrg) {
     params.set("orgId", currentOrg.orgId);
   }
@@ -156,7 +188,7 @@ async function loadAuditLog() {
     return;
   }
 
-  const params = new URLSearchParams({ actorUserId: currentUser.userId });
+  const params = new URLSearchParams();
   if (!isSuperAdmin() && currentOrg) {
     params.set("orgId", currentOrg.orgId);
   }
@@ -170,13 +202,6 @@ async function loadAuditLog() {
 }
 
 function handleContextChange(event) {
-  if (event.target === actingUserSelect) {
-    state.ui.currentUserId = actingUserSelect.value || "";
-    const memberships = getMembershipsForUser(state.ui.currentUserId);
-    state.ui.currentOrgId = memberships[0]?.orgId || "";
-    state.ui.currentScenarioId = "";
-  }
-
   if (event.target === actingOrgSelect) {
     state.ui.currentOrgId = actingOrgSelect.value || "";
     state.ui.currentScenarioId = "";
@@ -192,14 +217,12 @@ function handleContextChange(event) {
 }
 
 function applyDefaultSelections() {
-  if (!state.platform.users?.length) {
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    state.ui.currentOrgId = "";
+    state.ui.currentScenarioId = "";
+    saveUiSettings();
     return;
-  }
-
-  if (!state.ui.currentUserId || !findUser(state.ui.currentUserId)) {
-    state.ui.currentUserId =
-      state.platform.users.find((user) => user.platformRole === "super_admin")?.userId ||
-      state.platform.users[0].userId;
   }
 
   const availableOrgs = getAvailableOrganizations();
@@ -216,6 +239,7 @@ function applyDefaultSelections() {
 }
 
 function renderAll() {
+  renderAuth();
   renderBackendStatus();
   renderSelectors();
   renderRoleSummary();
@@ -230,6 +254,25 @@ function renderAll() {
   renderAuditLog();
 }
 
+function renderAuth() {
+  const signedIn = state.auth.authenticated && state.auth.user;
+  signedOutPanel.classList.toggle("hidden", signedIn);
+  signedInPanel.classList.toggle("hidden", !signedIn);
+  workspaceAccessSection.classList.toggle("hidden", !signedIn);
+  syncNowButton.disabled = !signedIn;
+  seedDemoButton.disabled = !signedIn;
+
+  if (!signedIn) {
+    accountSummary.innerHTML = "";
+    return;
+  }
+
+  accountSummary.innerHTML = `
+    <p class="status-panel__headline">${escapeHtml(state.auth.user.fullName)}</p>
+    <p class="status-panel__detail">${escapeHtml(state.auth.user.email)} · ${escapeHtml(formatPlatformRole(state.auth.user.platformRole))}</p>
+  `;
+}
+
 function renderBackendStatus() {
   backendStatus.classList.toggle("status-panel--online", state.api.available);
   backendStatus.classList.toggle("status-panel--offline", !state.api.available);
@@ -240,13 +283,9 @@ function renderBackendStatus() {
 }
 
 function renderSelectors() {
-  fillSelect(
-    actingUserSelect,
-    state.platform.users || [],
-    (user) => user.userId,
-    (user) => `${user.fullName} · ${formatPlatformRole(user.platformRole)}`
-  );
-  actingUserSelect.value = state.ui.currentUserId || "";
+  const currentUser = getCurrentUser();
+  fillSelect(actingUserSelect, currentUser ? [currentUser] : [], (user) => user.userId, (user) => user.fullName);
+  actingUserSelect.value = currentUser?.userId || "";
 
   fillSelect(
     actingOrgSelect,
@@ -372,8 +411,8 @@ function renderScenarioBoard() {
 }
 
 function renderSuperAdminSection() {
-  superAdminSection.classList.toggle("hidden", !isSuperAdmin());
-  if (!isSuperAdmin()) {
+  superAdminSection.classList.toggle("hidden", !state.auth.authenticated || !isSuperAdmin());
+  if (!state.auth.authenticated || !isSuperAdmin()) {
     return;
   }
 
@@ -429,11 +468,11 @@ function renderSuperAdminSection() {
 
 function renderOrgAdminSection() {
   const canManage = isOrgAdmin(getCurrentOrg()?.orgId) || isSuperAdmin();
-  orgAdminSection.classList.toggle("hidden", !canManage);
+  orgAdminSection.classList.toggle("hidden", !state.auth.authenticated || !canManage);
 }
 
 function renderMemberSection() {
-  memberSection.classList.toggle("hidden", !getCurrentUser());
+  memberSection.classList.toggle("hidden", !state.auth.authenticated || !getCurrentUser());
 }
 
 function renderRecordScope() {
@@ -491,8 +530,8 @@ function renderRecords() {
 
 function renderAuditLog() {
   const canView = isSuperAdmin() || isOrgAdmin(getCurrentOrg()?.orgId);
-  auditSection.classList.toggle("hidden", !canView);
-  if (!canView) {
+  auditSection.classList.toggle("hidden", !state.auth.authenticated || !canView);
+  if (!state.auth.authenticated || !canView) {
     return;
   }
 
@@ -515,6 +554,59 @@ function renderAuditLog() {
       </article>
     `)
     .join("");
+}
+
+async function handleSignIn(event) {
+  event.preventDefault();
+  const formData = new FormData(event.currentTarget);
+  await runAuthAction("signIn", {
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+}
+
+async function handleSignUp(event) {
+  event.preventDefault();
+  const formData = new FormData(event.currentTarget);
+  await runAuthAction("signUp", {
+    fullName: formData.get("fullName"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+}
+
+async function handleSignOut() {
+  await runAuthAction("signOut", {});
+}
+
+async function runAuthAction(action, payload) {
+  try {
+    const response = await apiRequest("/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, ...payload }),
+    });
+    state.auth = {
+      checked: true,
+      authenticated: Boolean(response.authenticated),
+      user: response.user || null,
+    };
+    if (action === "signOut") {
+      state.auth = { checked: true, authenticated: false, user: null };
+      state.platform = emptyPlatform();
+      state.records = [];
+      state.auditEntries = [];
+      state.ui.currentOrgId = "";
+      state.ui.currentScenarioId = "";
+      saveUiSettings();
+    }
+    signInForm.reset();
+    signUpForm.reset();
+    setSaveStatus(action === "signOut" ? "Signed out." : "Signed in.");
+    await refreshWorkspace();
+  } catch (error) {
+    setSaveStatus(error.message || "Authentication failed.");
+  }
 }
 
 async function handleCreateOrganization(event) {
@@ -602,7 +694,7 @@ async function handleRecordSubmit(event) {
   const currentOrg = getCurrentOrg();
   const currentScenario = getCurrentScenario();
   if (!currentUser || !currentOrg || !currentScenario) {
-    setSaveStatus("Select an acting user, organization, and scenario before saving records.");
+    setSaveStatus("Sign in and select an organization and scenario before saving records.");
     return;
   }
 
@@ -615,7 +707,6 @@ async function handleRecordSubmit(event) {
   record.scenarioName = currentScenario.name;
   record.createdBy = currentUser.userId;
   record.createdByName = currentUser.fullName;
-  record.actorUserId = currentUser.userId;
 
   const exists = state.records.find((item) => item.recordId === record.recordId);
   const endpoint = exists ? `/records/${record.recordId}` : "/records";
@@ -669,7 +760,7 @@ async function handleRecordActions(event) {
   if (actionTarget.dataset.action === "delete-record") {
     try {
       await apiRequest(
-        `/records/${record.recordId}?${new URLSearchParams({ actorUserId: getCurrentUser().userId })}`,
+        `/records/${record.recordId}`,
         { method: "DELETE" }
       );
       setSaveStatus("Record deleted.");
@@ -684,7 +775,7 @@ async function handleRecordActions(event) {
 async function runPlatformAction(action, payload) {
   const currentUser = getCurrentUser();
   if (!currentUser) {
-    setSaveStatus("Choose an acting user first.");
+    setSaveStatus("Sign in first.");
     return;
   }
 
@@ -694,7 +785,6 @@ async function runPlatformAction(action, payload) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action,
-        actorUserId: currentUser.userId,
         ...payload,
       }),
     });
@@ -725,7 +815,7 @@ function loadDemoRecord() {
   const currentUser = getCurrentUser();
   const currentScenario = getCurrentScenario();
   if (!currentUser || !currentScenario) {
-    setSaveStatus("Select an acting user and scenario before loading a demo record.");
+    setSaveStatus("Sign in and select a scenario before loading a demo record.");
     return;
   }
 
@@ -761,23 +851,21 @@ function loadDemoRecord() {
 function loadCachedPlatform() {
   try {
     return (
-      JSON.parse(localStorage.getItem(CACHE_KEY)) || {
-        users: [],
-        organizations: [],
-        memberships: [],
-        scenarios: [],
-        scenarioMemberships: [],
-      }
+      JSON.parse(localStorage.getItem(CACHE_KEY)) || emptyPlatform()
     );
   } catch {
-    return {
-      users: [],
-      organizations: [],
-      memberships: [],
-      scenarios: [],
-      scenarioMemberships: [],
-    };
+    return emptyPlatform();
   }
+}
+
+function emptyPlatform() {
+  return {
+    users: [],
+    organizations: [],
+    memberships: [],
+    scenarios: [],
+    scenarioMemberships: [],
+  };
 }
 
 function cachePlatform() {
@@ -814,7 +902,7 @@ function fillSelect(select, items, valueGetter, labelGetter) {
 }
 
 function getCurrentUser() {
-  return findUser(state.ui.currentUserId);
+  return state.auth.user;
 }
 
 function getCurrentOrg() {
@@ -826,6 +914,9 @@ function getCurrentScenario() {
 }
 
 function findUser(userId) {
+  if (state.auth.user?.userId === userId) {
+    return state.auth.user;
+  }
   return state.platform.users?.find((user) => user.userId === userId);
 }
 

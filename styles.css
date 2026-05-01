@@ -256,7 +256,8 @@ textarea {
 }
 
 .context-grid,
-.management-grid {
+.management-grid,
+.auth-stack {
   display: grid;
   gap: 16px;
 }

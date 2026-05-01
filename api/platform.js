@@ -2,27 +2,33 @@ import { randomUUID } from "node:crypto";
 import {
   appendAuditEntry,
   ensureSchema,
-  getPlatformSnapshot,
-  getUserContext,
+  getScopedPlatformSnapshot,
   query,
   randomCode,
 } from "../lib/db.js";
+import { requireAuth } from "../lib/auth.js";
 import { error, HttpError, json, parseJson } from "../lib/http.js";
 
 export const config = {
   runtime: "nodejs",
 };
 
-export async function GET() {
-  const snapshot = await getPlatformSnapshot();
-  return json(snapshot);
+export async function GET(request) {
+  try {
+    await ensureSchema();
+    const actorContext = await requireAuth(request);
+    return json(await getScopedPlatformSnapshot(actorContext));
+  } catch (caught) {
+    const status = caught instanceof HttpError ? caught.status : 400;
+    return error(caught.message || "Failed to load platform.", status);
+  }
 }
 
 export async function POST(request) {
   try {
     await ensureSchema();
     const payload = await parseJson(request);
-    const actorContext = await getActorContext(payload.actorUserId);
+    const actorContext = await requireAuth(request);
 
     switch (payload.action) {
       case "createOrganization":
@@ -356,18 +362,6 @@ async function upsertOrgMembership(orgId, userId, orgRole) {
     `,
     [orgId, userId, orgRole]
   );
-}
-
-async function getActorContext(actorUserId) {
-  if (!actorUserId) {
-    throw new HttpError("Actor user is required.", 400);
-  }
-
-  const actorContext = await getUserContext(actorUserId);
-  if (!actorContext?.user?.active) {
-    throw new HttpError("Acting user is invalid or inactive.", 403);
-  }
-  return actorContext;
 }
 
 function assertPlatformAdmin(actorContext) {

@@ -1,4 +1,5 @@
-import { ensureSchema, getUserContext, query, appendAuditEntry } from "../../lib/db.js";
+import { ensureSchema, query, appendAuditEntry } from "../../lib/db.js";
+import { requireAuth } from "../../lib/auth.js";
 import { error, HttpError, json, parseJson } from "../../lib/http.js";
 import { normalizeRecord, validateRecord } from "../../lib/record-utils.js";
 
@@ -10,10 +11,9 @@ export async function GET(request) {
   try {
     await ensureSchema();
     const url = new URL(request.url);
-    const actorUserId = url.searchParams.get("actorUserId");
     const orgId = url.searchParams.get("orgId");
     const scenarioId = url.searchParams.get("scenarioId");
-    const actorContext = await getActor(actorUserId);
+    const actorContext = await requireAuth(request);
 
     let sql = `
       SELECT payload
@@ -33,11 +33,8 @@ export async function GET(request) {
     }
 
     if (actorContext.user.platformRole !== "super_admin") {
-      const manageableOrgIds = actorContext.memberships
-        .filter((item) => item.active)
-        .map((item) => item.orgId);
-
-      if (!manageableOrgIds.length) {
+      const activeOrgIds = actorContext.memberships.filter((item) => item.active).map((item) => item.orgId);
+      if (!activeOrgIds.length) {
         return json({ records: [], total: 0 });
       }
 
@@ -47,7 +44,10 @@ export async function GET(request) {
 
       if (adminOrgIds.length) {
         params.push(adminOrgIds);
-        sql += ` AND org_id = ANY($${params.length}::text[])`;
+        const adminParam = params.length;
+        params.push(actorContext.user.userId);
+        const userParam = params.length;
+        sql += ` AND (org_id = ANY($${adminParam}::text[]) OR created_by = $${userParam})`;
       } else {
         params.push(actorContext.user.userId);
         sql += ` AND created_by = $${params.length}`;
@@ -71,8 +71,9 @@ export async function POST(request) {
   try {
     await ensureSchema();
     const payload = await parseJson(request);
+    const actorContext = await requireAuth(request);
+    payload.createdBy = actorContext.user.userId;
     validateRecord(payload, false);
-    const actorContext = await getActor(payload.actorUserId || payload.createdBy);
     assertCanAccessRecordScope(actorContext, payload.orgId, payload.scenarioId, payload.createdBy);
 
     const record = normalizeRecord(payload, false);
@@ -124,17 +125,6 @@ export async function POST(request) {
     const status = caught instanceof HttpError ? caught.status : 400;
     return error(caught.message || "Failed to create record.", status);
   }
-}
-
-async function getActor(actorUserId) {
-  if (!actorUserId) {
-    throw new HttpError("Actor user is required.", 400);
-  }
-  const actorContext = await getUserContext(actorUserId);
-  if (!actorContext?.user?.active) {
-    throw new HttpError("Acting user is invalid or inactive.", 403);
-  }
-  return actorContext;
 }
 
 function assertCanAccessRecordScope(actorContext, orgId, scenarioId, createdBy) {

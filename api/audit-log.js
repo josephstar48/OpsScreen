@@ -1,4 +1,5 @@
-import { ensureSchema, getUserContext, query } from "../lib/db.js";
+import { ensureSchema, query } from "../lib/db.js";
+import { requireAuth } from "../lib/auth.js";
 import { error, HttpError, json } from "../lib/http.js";
 
 export const config = {
@@ -9,9 +10,8 @@ export async function GET(request) {
   try {
     await ensureSchema();
     const url = new URL(request.url);
-    const actorUserId = url.searchParams.get("actorUserId");
     const orgId = url.searchParams.get("orgId");
-    const actorContext = await getActor(actorUserId);
+    const actorContext = await requireAuth(request);
 
     let sql = `
       SELECT id, action, entity_type, entity_id, org_id, actor, source_ip, details, created_at
@@ -58,15 +58,4 @@ export async function GET(request) {
     const status = caught instanceof HttpError ? caught.status : 400;
     return error(caught.message || "Failed to load audit log.", status);
   }
-}
-
-async function getActor(actorUserId) {
-  if (!actorUserId) {
-    throw new HttpError("Actor user is required.", 400);
-  }
-  const actorContext = await getUserContext(actorUserId);
-  if (!actorContext?.user?.active) {
-    throw new HttpError("Acting user is invalid or inactive.", 403);
-  }
-  return actorContext;
 }

@@ -57,13 +57,59 @@
 
       <main class="layout">
         <aside class="rail">
-          <section class="card">
+          <section id="authSection" class="card">
+            <h2>Account</h2>
+            <div id="signedOutPanel" class="auth-stack">
+              <form id="signInForm" class="form-section">
+                <h3>Sign in</h3>
+                <div class="form-grid form-grid--single">
+                  <label>
+                    Email
+                    <input name="email" type="email" autocomplete="email" required />
+                  </label>
+                  <label>
+                    Password
+                    <input name="password" type="password" autocomplete="current-password" minlength="10" required />
+                  </label>
+                </div>
+                <div class="form-footer">
+                  <p class="save-status">Use your OpsScreen account.</p>
+                  <button class="button button--primary" type="submit">Sign In</button>
+                </div>
+              </form>
+
+              <form id="signUpForm" class="form-section">
+                <h3>Create account</h3>
+                <div class="form-grid form-grid--single">
+                  <label>
+                    Full name
+                    <input name="fullName" autocomplete="name" maxlength="80" required />
+                  </label>
+                  <label>
+                    Email
+                    <input name="email" type="email" autocomplete="email" required />
+                  </label>
+                  <label>
+                    Password
+                    <input name="password" type="password" autocomplete="new-password" minlength="10" required />
+                  </label>
+                </div>
+                <div class="form-footer">
+                  <p class="save-status">The first account becomes super admin.</p>
+                  <button class="button button--primary" type="submit">Create Account</button>
+                </div>
+              </form>
+            </div>
+            <div id="signedInPanel" class="hidden">
+              <div id="accountSummary" class="status-panel"></div>
+              <button id="signOutButton" class="button button--ghost" type="button">Sign Out</button>
+            </div>
+          </section>
+
+          <section id="workspaceAccessSection" class="card">
             <h2>Access Workspace</h2>
             <div class="context-grid">
-              <label>
-                Acting user
-                <select id="actingUserSelect"></select>
-              </label>
+              <select id="actingUserSelect" class="hidden" aria-hidden="true"></select>
               <label>
                 Organization
                 <select id="actingOrgSelect"></select>
@@ -109,7 +155,7 @@
                 <h2 id="contextTitle">Loading workspace...</h2>
               </div>
               <p id="contextDetail" class="section-heading__hint">
-                Role-aware views update as you switch acting user, organization, and scenario.
+                Role-aware views update from your signed-in account, organization, and scenario.
               </p>
             </div>
             <div id="scenarioBoard" class="data-list"></div>
@@ -279,7 +325,7 @@
                   </label>
                 </div>
                 <div class="form-footer">
-                  <p class="save-status">Adds the acting user to that organization as a member.</p>
+                  <p class="save-status">Adds your signed-in account to that organization as a member.</p>
                   <button class="button button--primary" type="submit">Join Org</button>
                 </div>
               </form>
@@ -293,7 +339,7 @@
                   </label>
                 </div>
                 <div class="form-footer">
-                  <p class="save-status">Grants the acting user access to a scenario within their organization.</p>
+                  <p class="save-status">Grants your signed-in account access to a scenario within the organization.</p>
                   <button class="button button--primary" type="submit">Join Scenario</button>
                 </div>
               </form>

@@ -1,4 +1,5 @@
-import { appendAuditEntry, ensureSchema, getUserContext, query } from "../../lib/db.js";
+import { appendAuditEntry, ensureSchema, query } from "../../lib/db.js";
+import { requireAuth } from "../../lib/auth.js";
 import { error, HttpError, json, parseJson } from "../../lib/http.js";
 import { normalizeRecord, validateRecord } from "../../lib/record-utils.js";
 
@@ -12,8 +13,7 @@ export async function PUT(request) {
     const recordId = extractRecordId(request);
     const payload = await parseJson(request);
     payload.recordId = recordId;
-    validateRecord(payload, true);
-    const actorContext = await getActor(payload.actorUserId || payload.createdBy);
+    const actorContext = await requireAuth(request);
 
     const current = await query(
       `
@@ -29,6 +29,9 @@ export async function PUT(request) {
     }
 
     assertCanModifyRecord(actorContext, current.rows[0].org_id, current.rows[0].created_by);
+    payload.createdBy = current.rows[0].created_by;
+    payload.orgId = current.rows[0].org_id;
+    validateRecord(payload, true);
     const record = normalizeRecord({ ...current.rows[0].payload, ...payload, recordId }, true);
 
     await query(
@@ -81,8 +84,7 @@ export async function DELETE(request) {
   try {
     await ensureSchema();
     const recordId = extractRecordId(request);
-    const url = new URL(request.url);
-    const actorContext = await getActor(url.searchParams.get("actorUserId"));
+    const actorContext = await requireAuth(request);
 
     const current = await query(
       `
@@ -127,17 +129,6 @@ export async function DELETE(request) {
 function extractRecordId(request) {
   const url = new URL(request.url);
   return decodeURIComponent(url.pathname.split("/").pop() || "");
-}
-
-async function getActor(actorUserId) {
-  if (!actorUserId) {
-    throw new HttpError("Actor user is required.", 400);
-  }
-  const actorContext = await getUserContext(actorUserId);
-  if (!actorContext?.user?.active) {
-    throw new HttpError("Acting user is invalid or inactive.", 403);
-  }
-  return actorContext;
 }
 
 function assertCanModifyRecord(actorContext, orgId, createdBy) {
