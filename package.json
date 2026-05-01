@@ -7,6 +7,11 @@
   "engines": {
     "node": ">=18"
   },
+  "scripts": {
+    "dev": "node scripts/dev-server.mjs",
+    "vercel:dev": "set -a; . ./.env.local; set +a; npx vercel dev",
+    "check": "node --check app.js && node --check service-worker.js && node --check scripts/dev-server.mjs && node --check api/auth.js && node --check api/platform.js && node --check api/audit-log.js && node --check api/records/index.js && node --check 'api/records/[recordId].js' && node --check lib/auth.js && node --check lib/db.js"
+  },
   "dependencies": {
     "@vercel/functions": "^2.0.0",
     "pg": "^8.11.0"

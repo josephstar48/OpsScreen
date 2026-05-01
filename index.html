@@ -55,7 +55,7 @@
         </div>
       </header>
 
-      <main class="layout">
+      <main id="mainLayout" class="layout">
         <aside class="rail">
           <section id="authSection" class="card">
             <h2>Account</h2>
@@ -107,7 +107,7 @@
             </div>
           </section>
 
-          <section id="workspaceAccessSection" class="card">
+          <section id="workspaceAccessSection" class="card protected-panel">
             <h2>Access Workspace</h2>
             <div class="context-grid">
               <select id="actingUserSelect" class="hidden" aria-hidden="true"></select>
@@ -123,7 +123,7 @@
             <div id="roleSummary" class="tag-row"></div>
           </section>
 
-          <section class="card">
+          <section class="card protected-panel">
             <h2>Backend Status</h2>
             <div id="backendStatus" class="status-panel">
               <p class="status-panel__headline">Checking backend connection...</p>
@@ -131,7 +131,7 @@
             </div>
           </section>
 
-          <section class="card card--notice">
+          <section class="card card--notice protected-panel">
             <h2>Safety Guardrails</h2>
             <ul class="stack-list">
               <li>Training-only roles and synthetic identities.</li>
@@ -142,13 +142,13 @@
             </ul>
           </section>
 
-          <section class="card">
+          <section class="card protected-panel">
             <h2>Platform Snapshot</h2>
             <dl class="metrics" id="metrics"></dl>
           </section>
         </aside>
 
-        <section class="workspace">
+        <section id="workspaceSection" class="workspace">
           <section class="card">
             <div class="section-heading">
               <div>

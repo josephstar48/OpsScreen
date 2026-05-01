@@ -152,6 +152,15 @@ textarea {
   margin-top: 24px;
 }
 
+.layout--auth-only {
+  grid-template-columns: minmax(280px, 520px);
+  justify-content: center;
+}
+
+.layout--auth-only .rail {
+  width: 100%;
+}
+
 .rail,
 .workspace {
   display: grid;
@@ -214,7 +223,7 @@ textarea {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 .status-panel {
