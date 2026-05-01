@@ -445,6 +445,9 @@ function renderSuperAdminSection() {
             <button class="button button--ghost" data-action="toggle-org" data-org-id="${org.orgId}" data-active="${org.active}">
               ${org.active ? "Deactivate" : "Activate"}
             </button>
+            <button class="button button--ghost" data-action="delete-org" data-org-id="${org.orgId}" data-org-name="${escapeHtml(org.name)}">
+              Delete
+            </button>
           </div>
         </article>
       `;
@@ -743,15 +746,28 @@ async function handleRecordSubmit(event) {
 }
 
 async function handleOrganizationActions(event) {
-  const button = event.target.closest("[data-action='toggle-org']");
+  const button = event.target.closest("[data-action]");
   if (!button) {
     return;
   }
 
-  await runPlatformAction("setOrganizationStatus", {
-    orgId: button.dataset.orgId,
-    active: button.dataset.active !== "true",
-  });
+  if (button.dataset.action === "toggle-org") {
+    await runPlatformAction("setOrganizationStatus", {
+      orgId: button.dataset.orgId,
+      active: button.dataset.active !== "true",
+    });
+    return;
+  }
+
+  if (button.dataset.action === "delete-org") {
+    const orgName = button.dataset.orgName || "this organization";
+    if (!window.confirm(`Delete ${orgName}? Only empty organizations can be deleted.`)) {
+      return;
+    }
+    await runPlatformAction("deleteOrganization", {
+      orgId: button.dataset.orgId,
+    });
+  }
 }
 
 async function handleRecordActions(event) {

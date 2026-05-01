@@ -45,6 +45,10 @@ export async function POST(request) {
         assertPlatformAdmin(actorContext);
         await setOrganizationStatus(payload, actorContext, request);
         return json({ ok: true });
+      case "deleteOrganization":
+        assertPlatformAdmin(actorContext);
+        await deleteOrganization(payload, actorContext, request);
+        return json({ ok: true });
       case "setOrgAdmin":
         assertPlatformAdmin(actorContext);
         await setOrgAdmin(payload, actorContext, request);
@@ -173,6 +177,44 @@ async function setOrganizationStatus(payload, actorContext, request) {
     actor: actorContext.user.userId,
     sourceIp: request.headers.get("x-forwarded-for") || "unknown",
     details: { active: payload.active },
+  });
+}
+
+async function deleteOrganization(payload, actorContext, request) {
+  if (!payload.orgId) {
+    throw new HttpError("Organization is required.", 400);
+  }
+
+  const blockers = await Promise.all([
+    query("SELECT COUNT(*)::int AS count FROM opsscreen_records WHERE org_id = $1", [payload.orgId]),
+    query("SELECT COUNT(*)::int AS count FROM opsscreen_scenarios WHERE org_id = $1", [payload.orgId]),
+    query("SELECT COUNT(*)::int AS count FROM opsscreen_org_memberships WHERE org_id = $1", [payload.orgId]),
+  ]);
+  const blockerCount = blockers.reduce((sum, result) => sum + result.rows[0].count, 0);
+  if (blockerCount > 0) {
+    throw new HttpError("Only empty organizations can be deleted. Deactivate this organization instead.", 409);
+  }
+
+  const deleted = await query(
+    `
+      DELETE FROM opsscreen_organizations
+      WHERE org_id = $1
+      RETURNING org_id, name
+    `,
+    [payload.orgId]
+  );
+  if (!deleted.rowCount) {
+    throw new HttpError("Organization not found.", 404);
+  }
+
+  await appendAuditEntry({
+    action: "delete",
+    entityType: "organization",
+    entityId: deleted.rows[0].org_id,
+    orgId: null,
+    actor: actorContext.user.userId,
+    sourceIp: request.headers.get("x-forwarded-for") || "unknown",
+    details: { name: deleted.rows[0].name },
   });
 }
 
